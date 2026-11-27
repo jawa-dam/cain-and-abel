@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Cain & Abel: The Adam Dam Challenge</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;touch-action:none;background:#000;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;user-select:none;-webkit-user-select:none}
+canvas{display:block;position:absolute;top:0;left:0;width:100%;height:100%}
+#ui-overlay{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;display:flex;flex-direction:column;align-items:center;justify-content:center}
+#ui-overlay>*{pointer-events:auto}
+.btn{background:linear-gradient(180deg,#f4a832,#d4891a);color:#fff;border:3px solid #8B6914;border-radius:12px;padding:14px 36px;font-size:clamp(16px,3vw,22px);font-weight:700;cursor:pointer;text-shadow:1px 1px 2px rgba(0,0,0,.5);box-shadow:0 4px 12px rgba(0,0,0,.4);transition:transform .1s,box-shadow .1s;text-transform:uppercase;letter-spacing:1px;min-width:44px;min-height:44px}
+.btn:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.5)}
+.btn:active{transform:translateY(1px);box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.btn-secondary{background:linear-gradient(180deg,#5ba3d9,#3a7cb8);border-color:#2a5a8a}
+#sound-toggle{position:fixed;top:12px;right:12px;z-index:1000;pointer-events:auto;background:rgba(0,0,0,.6);color:#fff;border:2px solid rgba(255,255,255,.3);border-radius:50%;width:48px;height:48px;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+#loading-screen{position:absolute;top:0;left:0;width:100%;height:100%;background:linear-gradient(180deg,#1a2a3a,#0a1520);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;color:#fff}
+#loading-screen h1{font-size:clamp(20px,5vw,36px);margin-bottom:8px;text-shadow:0 0 20px rgba(100,180,255,.5)}
+#loading-screen p{font-size:clamp(12px,2.5vw,16px);opacity:.7;margin-bottom:30px}
+.progress-bar{width:min(80%,400px);height:12px;background:rgba(255,255,255,.1);border-radius:6px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,#4a9eff,#64d2ff);border-radius:6px;transition:width .3s;width:0}
+#dialogue-box{position:fixed;bottom:0;left:0;width:100%;background:linear-gradient(0deg,rgba(10,20,40,.97),rgba(10,20,40,.92));border-top:3px solid rgba(100,180,255,.4);padding:12px 16px;display:none;z-index:50;max-height:40vh}
+#dialogue-inner{display:flex;align-items:flex-start;gap:12px;max-width:800px;margin:0 auto}
+#dialogue-portrait{width:clamp(50px,12vw,80px);height:clamp(50px,12vw,80px);border-radius:50%;border:3px solid #f4a832;overflow:hidden;flex-shrink:0;background:#1a3050}
+#dialogue-portrait img{width:100%;height:100%;object-fit:cover}
+#dialogue-text{color:#e0e8f0;font-size:clamp(14px,2.8vw,18px);line-height:1.5;flex:1}
+#dialogue-text .speaker{color:#f4a832;font-weight:700;display:block;margin-bottom:4px;font-size:clamp(12px,2.2vw,14px);text-transform:uppercase;letter-spacing:1px}
+#dialogue-advance{position:absolute;bottom:8px;right:16px;color:rgba(255,255,255,.5);font-size:12px;animation:pulse-advance 1.5s infinite}
+@keyframes pulse-advance{0%,100%{opacity:.4}50%{opacity:.9}}
+@keyframes pulse-btn{0%,100%{box-shadow:0 4px 12px rgba(0,0,0,.4),0 0 0 0 rgba(244,168,50,0)}50%{box-shadow:0 6px 20px rgba(0,0,0,.5),0 0 20px 4px rgba(244,168,50,.4)}}
+#char-select{display:none;text-align:center}
+#char-select h2{color:#f4a832;font-size:clamp(22px,4vw,32px);margin-bottom:6px;text-shadow:0 2px 8px rgba(0,0,0,.7)}
+#char-select p{color:#ccc;margin-bottom:20px;font-size:clamp(13px,2.5vw,16px)}
+.char-cards{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;padding:0 16px}
+.char-card{background:rgba(20,35,60,.9);border:3px solid rgba(100,160,255,.3);border-radius:16px;padding:20px;width:min(280px,42vw);cursor:pointer;transition:transform .2s,border-color .2s,box-shadow .2s}
+.char-card:hover{transform:scale(1.04);border-color:#f4a832;box-shadow:0 0 24px rgba(244,168,50,.3)}
+.char-card h3{color:#f4a832;font-size:clamp(18px,3vw,24px);margin:10px 0 6px}
+.char-card p{color:#aab;font-size:clamp(12px,2.2vw,14px);line-height:1.4}
+.char-card .tool-icon{font-size:36px;margin-top:8px}
+.char-img-wrap{width:100px;height:100px;margin:0 auto;border-radius:50%;overflow:hidden;border:3px solid rgba(100,180,255,.4);background:#1a3050}
+.char-img-wrap img{width:100%;height:100%;object-fit:cover}
+#quiz-panel{display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(10,20,40,.95);border:3px solid rgba(100,180,255,.4);border-radius:20px;padding:clamp(16px,3vw,30px);width:min(90%,550px);z-index:60;text-align:center}
+#quiz-panel h3{color:#f4a832;font-size:clamp(18px,3.5vw,24px);margin-bottom:16px}
+#quiz-question{color:#e0e8f0;font-size:clamp(14px,2.8vw,18px);line-height:1.5;margin-bottom:20px}
+.quiz-btn{display:block;width:100%;background:rgba(50,80,120,.7);color:#e0e8f0;border:2px solid rgba(100,160,255,.3);border-radius:10px;padding:12px 16px;margin-bottom:10px;font-size:clamp(13px,2.5vw,16px);cursor:pointer;text-align:left;transition:background .2s,border-color .2s}
+.quiz-btn:hover{background:rgba(60,100,150,.8);border-color:#f4a832}
+.quiz-btn.correct{background:rgba(40,160,80,.7);border-color:#4f4}
+.quiz-btn.wrong{background:rgba(180,40,40,.7);border-color:#f44}
+#quiz-feedback{color:#f4a832;font-size:clamp(13px,2.5vw,16px);margin-top:12px;min-height:24px}
+#completion-screen{display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(5,15,30,.92);z-index:70;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px}
+#completion-screen h1{color:#f4a832;font-size:clamp(28px,6vw,48px);text-shadow:0 0 30px rgba(244,168,50,.6);margin-bottom:4px}
+#completion-screen h2{color:#64d2ff;font-size:clamp(16px,3vw,24px);margin-bottom:4px}
+#completion-screen h3{color:#aaa;font-size:clamp(13px,2.5vw,18px);margin-bottom:20px;font-weight:400}
+.badge-row{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:24px}
+.badge{background:rgba(30,50,80,.8);border:2px solid #f4a832;border-radius:12px;padding:12px 18px;color:#f4a832;font-size:clamp(12px,2vw,14px);font-weight:600}
+#hud{position:fixed;top:12px;left:12px;z-index:40;display:none}
+#hud .hud-item{background:rgba(0,0,0,.6);color:#fff;padding:6px 12px;border-radius:8px;font-size:clamp(11px,2vw,14px);backdrop-filter:blur(4px);margin-bottom:6px;border:1px solid rgba(255,255,255,.15)}
+#bible-panel{position:fixed;top:60px;right:12px;z-index:40;background:rgba(20,10,5,.92);border:2px solid rgba(180,140,80,.4);border-radius:12px;padding:14px;width:min(260px,40vw);display:none;color:#d4c4a0;font-size:clamp(11px,2vw,13px);line-height:1.6;font-style:italic;max-height:50vh;overflow-y:auto}
+#bible-panel .ref-title{color:#f4a832;font-weight:700;font-style:normal;font-size:clamp(10px,1.8vw,12px);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+#bible-toggle{position:fixed;top:60px;right:12px;z-index:41;background:rgba(0,0,0,.6);color:#d4c4a0;border:2px solid rgba(180,140,80,.4);border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;display:none}
+.discovery-label{position:absolute;background:rgba(10,20,40,.9);color:#64d2ff;border:2px solid rgba(100,180,255,.4);border-radius:8px;padding:8px 14px;font-size:clamp(12px,2.2vw,15px);pointer-events:none;white-space:nowrap;z-index:30;display:none}
+#rotation-counter{position:fixed;top:50%;left:50%;transform:translate(-50%,-80px);z-index:45;color:#f4a832;font-size:clamp(28px,6vw,48px);font-weight:700;text-shadow:0 0 20px rgba(244,168,50,.6);display:none;pointer-events:none}
+#instruction-text{position:fixed;bottom:calc(clamp(50px,12vw,80px) + 60px);left:50%;transform:translateX(-50%);z-index:45;color:#fff;font-size:clamp(14px,2.8vw,18px);text-align:center;background:rgba(0,0,0,.7);padding:8px 20px;border-radius:10px;display:none;pointer-events:none;max-width:90%}
+</style>
+</head>
+<body>
+<div id="loading-screen">
+<h1>CAIN & ABEL</h1>
+<p>The Adam Dam Challenge</p>
+<div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+<p id="load-status" style="margin-top:12px;font-size:12px;opacity:.5">Loading assets...</p>
+</div>
+<canvas id="game-canvas"></canvas>
+<div id="ui-overlay">
+<button class="btn" id="btn-start" style="display:none;position:absolute;bottom:20%;font-size:clamp(18px,3.5vw,24px);padding:16px 44px;animation:pulse-btn 2s infinite">START ADVENTURE</button>
+<div id="char-select">
+<h2>CHOOSE YOUR ENGINEER</h2>
+<p>Who will control the flow today?</p>
+<div class="char-cards">
+<div class="char-card" id="pick-cain">
+<div class="char-img-wrap"><img id="cain-img" alt="Cain"></div>
+<h3>CAIN</h3>
+<p>The Water Release Mission</p>
+<div class="tool-icon">&#128295;</div>
+<p style="color:#64d2ff;margin-top:4px;font-weight:600">Adjustable Wrench</p>
+</div>
+<div class="char-card" id="pick-abel">
+<div class="char-img-wrap"><img id="abel-img" alt="Abel"></div>
+<h3>ABEL</h3>
+<p>The Water Management Mission</p>
+<div class="tool-icon">&#9211;</div>
+<p style="color:#64d2ff;margin-top:4px;font-weight:600">Hydraulic Crank</p>
+</div>
+</div>
+</div>
+</div>
+<div id="dialogue-box">
+<div id="dialogue-inner">
+<div id="dialogue-portrait"><img id="portrait-img" alt="Wilbert"></div>
+<div id="dialogue-text"><span class="speaker">Wilbert</span><span id="d-content"></span></div>
+</div>
+<div id="dialogue-advance">Tap to continue</div>
+</div>
+<div id="quiz-panel">
+<h3 id="quiz-header">ENGINEERING QUESTION</h3>
+<div id="quiz-question"></div>
+<div id="quiz-answers"></div>
+<div id="quiz-feedback"></div>
+</div>
+<div id="completion-screen">
+<h1>MISSION COMPLETE!</h1>
+<h2>YOU CONTROLLED THE FLOW!</h2>
+<h3>FROM DRY LAND TO CIVILIZATION!</h3>
+<div class="badge-row">
+<div class="badge">+500 XP</div>
+<div class="badge">&#127942; Engineering Achievement</div>
+<div class="badge">&#128167; Water Management Badge</div>
+</div>
+<button class="btn" id="btn-replay" style="font-size:clamp(18px,3.5vw,24px);padding:16px 40px">PLAY AGAIN &mdash; NEW WORLD</button>
+</div>
+<button id="sound-toggle">&#128264;</button>
+<div id="hud"><div class="hud-item" id="hud-progress"></div></div>
+<button id="bible-toggle">&#128214; Scripture</button>
+<div id="bible-panel">
+<div class="ref-title">Biblical References <span style="cursor:pointer" id="close-bible">&times;</span></div>
+<p><b>Genesis 4:2 (KJV)</b><br>"And she again bare his brother Abel. And Abel was a keeper of sheep, but Cain was a tiller of the ground."</p><br>
+<p><b>Genesis 4:8 (KJV)</b><br>"And Cain talked with Abel his brother: and it came to pass, when they were in the field, that Cain rose up against Abel his brother, and slew him."</p><br>
+<p><b>Genesis 4:17 (KJV)</b><br>"And Cain knew his wife; and she conceived, and bare Enoch: and he builded a city, and called the name of the city, after the name of his son, Enoch."</p><br>
+<p style="color:#f4a832;font-style:normal;font-size:11px;margin-top:8px;border-top:1px solid rgba(180,140,80,.3);padding-top:8px"><b>GEI Note:</b> These biblical passages provide thematic context. This game presents a hydraulic engineering interpretation for educational purposes. Genesis does not explicitly describe Cain operating a hydraulic dam.</p>
+</div>
+<div id="rotation-counter"></div>
+<div id="instruction-text"></div>
+
+<script>
+"use strict";
+// ===================== SEEDED PRNG =====================
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t^=t+Math.imul(t^t>>>7,61|t);return((t^t>>>14)>>>0)/4294967296}}
+let worldSeed=Date.now()^(Math.random()*0xFFFFFFFF>>>0);
+let rng=mulberry32(worldSeed);
+
+// ===================== WORLD GENERATION =====================
+const ENVS=['mountain_valley','rocky_canyon','green_valley','desert','forest_reservoir','agricultural_basin'];
+const WEATHERS=['sunny_morning','golden_sunset','cloudy','light_rain','storm','misty'];
+const WATER_COLORS=[
+  {name:'deep_blue',base:'#1a4a8a',mid:'#2a6ab0',top:'#4a8ad0'},
+  {name:'turquoise',base:'#0a6a6a',mid:'#1a9a9a',top:'#3ababa'},
+  {name:'green_blue',base:'#1a5a4a',mid:'#2a8a6a',top:'#4aaa8a'},
+  {name:'dark_stormy',base:'#1a2a3a',mid:'#2a3a4a',top:'#3a4a5a'},
+  {name:'sun_reflecting',base:'#2a5a9a',mid:'#4a8aca',top:'#8abaee'}
+];
+const LAND_TYPES=['dry_golden','rocky','green_grass','fertile','mixed'];
+const DIALOGUES_INTRO=[
+  "Welcome, DAM-ITE! There's plenty of water behind this dam, but look at the land below! The people need water to grow food, support their families, and build communities. Today, you're going to learn how to control the flow!",
+  "Howdy, young engineer! See all that water up there? And all that dry land down below? Your mission is to bring life to this valley by learning how dams work. Let's get started!",
+  "Well hello there, future water engineer! This big dam is holding back a whole lake of water. But the farms and towns downstream are thirsty! Ready to learn how to manage the flow?",
+  "Greetings, DAM-ITE! Behind me is one mighty reservoir, and ahead of us is a land that needs water. With the right engineering, we can turn dry ground into a thriving community. Shall we begin?"
+];
+const ACCESSORY_COLORS=['#e63946','#457b9d','#2a9d8f','#e9c46a','#f4a261','#264653'];
+let world={};
+function generateWorld(){
+  worldSeed=Date.now()^(Math.random()*0xFFFFFFFF>>>0);
+  rng=mulberry32(worldSeed);
+  let r=()=>rng();
+  world={
+    env:ENVS[Math.floor(r()*ENVS.length)],
+    weather:WEATHERS[Math.floor(r()*WEATHERS.length)],
+    waterColor:WATER_COLORS[Math.floor(r()*WATER_COLORS.length)],
+    land:LAND_TYPES[Math.floor(r()*LAND_TYPES.length)],
+    introDialogue:DIALOGUES_INTRO[Math.floor(r()*DIALOGUES_INTRO.length)],
+    accessoryColor:ACCESSORY_COLORS[Math.floor(r()*ACCESSORY_COLORS.length)],
+    buildingSeed:Math.floor(r()*100000),
+    treeSeed:Math.floor(r()*100000),
+    mountainSeed:Math.floor(r()*100000),
+    cloudSeed:Math.floor(r()*100000),
+    citySize:3+Math.floor(r()*4),
+    cropType:Math.floor(r()*4),
+    roadAngle:r()*0.3-0.15,
+    settlementX:0.55+r()*0.15,
+    cameraStartAngle:r()*0.4-0.2
+  };
+  world.sky=getSkyColors();
+  world.mountains=genMountains();
+  world.clouds=genClouds();
+  world.buildings=genBuildings();
+  world.trees=genTrees();
+}
+function getSkyColors(){
+  switch(world.weather){
+    case'sunny_morning':return{top:'#1a6adf',mid:'#5abaff',low:'#b0e0ff',sun:true,sunX:.75,sunY:.15};
+    case'golden_sunset':return{top:'#1a2a5a',mid:'#c05030',low:'#f0a040',sun:true,sunX:.85,sunY:.25};
+    case'cloudy':return{top:'#4a5a6a',mid:'#7a8a9a',low:'#9aaaba',sun:false};
+    case'light_rain':return{top:'#3a4a5a',mid:'#5a6a7a',low:'#7a8a9a',sun:false};
+    case'storm':return{top:'#1a1a2a',mid:'#2a3040',low:'#3a4050',sun:false};
+    case'misty':return{top:'#6a7a8a',mid:'#9aaaba',low:'#baccda',sun:true,sunX:.5,sunY:.12};
+    default:return{top:'#1a6adf',mid:'#5abaff',low:'#b0e0ff',sun:true,sunX:.7,sunY:.15};
+  }
+}
+function genMountains(){
+  let ms=mulberry32(world.mountainSeed);
+  let layers=[];
+  let envH=world.env==='desert'?.18:world.env==='rocky_canyon'?.42:world.env==='mountain_valley'?.45:.35;
+  let colors;
+  switch(world.env){
+    case'mountain_valley':colors=[['#2a3a2a','#3a5a3a'],['#3a4a3a','#4a6a4a'],['#4a5a4a','#5a7a5a']];break;
+    case'rocky_canyon':colors=[['#5a3a2a','#7a5a3a'],['#6a4a3a','#8a6a4a'],['#7a5a4a','#9a7a5a']];break;
+    case'green_valley':colors=[['#2a4a2a','#3a6a3a'],['#3a5a3a','#4a7a4a'],['#4a6a4a','#5a8a5a']];break;
+    case'desert':colors=[['#8a6a4a','#aa8a5a'],['#9a7a5a','#ba9a6a'],['#aa8a6a','#caaa7a']];break;
+    case'forest_reservoir':colors=[['#1a3a1a','#2a5a2a'],['#2a4a2a','#3a6a3a'],['#3a5a3a','#4a7a4a']];break;
+    case'agricultural_basin':colors=[['#4a5a3a','#6a7a4a'],['#5a6a4a','#7a8a5a'],['#6a7a5a','#8a9a6a']];break;
+    default:colors=[['#3a4a3a','#4a6a4a'],['#4a5a4a','#5a7a5a'],['#5a6a5a','#6a8a6a']];
+  }
+  for(let i=0;i<3;i++){
+    let pts=[];
+    let n=5+Math.floor(ms()*4);
+    for(let j=0;j<=n;j++){
+      pts.push({x:j/n,y:envH*(0.5+0.5*ms())*(1-i*0.25)});
+    }
+    layers.push({points:pts,colors:colors[i]});
+  }
+  return layers;
+}
+function genClouds(){
+  let cs=mulberry32(world.cloudSeed);
+  let n=world.weather==='cloudy'||world.weather==='storm'?8:world.weather==='light_rain'?6:3;
+  let clouds=[];
+  for(let i=0;i<n;i++){
+    clouds.push({x:cs(),y:cs()*0.2,w:0.08+cs()*0.12,h:0.02+cs()*0.03,speed:0.001+cs()*0.003,opacity:0.3+cs()*0.5});
+  }
+  return clouds;
+}
+function genBuildings(){
+  let bs=mulberry32(world.buildingSeed);
+  let arr=[];
+  let n=world.citySize*3;
+  for(let i=0;i<n;i++){
+    arr.push({
+      rx:0.02+bs()*0.35,
+      ry:bs()*0.08,
+      w:0.015+bs()*0.025,
+      h:0.03+bs()*0.06,
+      color:`hsl(${20+bs()*30},${20+bs()*30}%,${40+bs()*25}%)`,
+      roofColor:`hsl(${bs()*40},${30+bs()*30}%,${30+bs()*20}%)`,
+      windows:1+Math.floor(bs()*3),
+      floors:1+Math.floor(bs()*2),
+      hasChimney:bs()>0.6
+    });
+  }
+  return arr;
+}
+function genTrees(){
+  let ts=mulberry32(world.treeSeed);
+  let arr=[];
+  let n=world.env==='desert'?4:world.env==='forest_reservoir'?20:12;
+  for(let i=0;i<n;i++){
+    arr.push({
+      rx:ts()*0.5,
+      ry:ts()*0.1,
+      size:0.01+ts()*0.02,
+      type:Math.floor(ts()*3),
+      color:world.env==='desert'?`hsl(${80+ts()*40},${30+ts()*20}%,${35+ts()*20}%)`:`hsl(${90+ts()*40},${40+ts()*30}%,${25+ts()*20}%)`
+    });
+  }
+  return arr;
+}
+
+// ===================== GLOBALS =====================
+const canvas=document.getElementById('game-canvas');
+const ctx=canvas.getContext('2d');
+let W,H;
+function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight}
+window.addEventListener('resize',resize);
+resize();
+
+const STATES={LOADING:0,CINEMATIC:1,CHAR_SELECT:2,DISCOVERY:3,VALVE:4,TRANSFORM:5,QUIZ:6,COMPLETE:7};
+let state=STATES.LOADING;
+let stateTime=0;
+let deltaTime=0;
+let lastTime=0;
+let selectedChar=null; // 'cain' or 'abel'
+let valveRotations=0;
+let gateOpen=0; // 0-1
+let transformStage=0; // 0-4
+let transformProgress=0;
+let quizIndex=0;
+let quizScore=0;
+let particles=[];
+let cinematicPhase=0;
+let cinematicTimer=0;
+let dialogueQueue=[];
+let dialogueActive=false;
+let dialogueChar=0;
+let dialogueFullText='';
+let dialogueSpeaker='';
+let discoveryIndex=0;
+let discoveryItems=[];
+let showStartBtn=false;
+let valveAngle=0;
+let valveDragging=false;
+let valveLastAngle=0;
+let valveAccum=0;
+let hudVisible=false;
+let inputEnabled=true;
+let waterLevel=0;
+let raindrops=[];
+
+// Images
+let imgWilbert=new Image();
+let imgBeaver=new Image();
+let imagesLoaded=0;
+let totalImages=2;
+
+// Audio
+let audioCtx=null;
+let masterGain=null;
+let soundOn=true;
+
+// ===================== ASSET LOADING =====================
+function loadAssets(){
+  return new Promise((resolve)=>{
+    let loaded=0;
+    const check=()=>{loaded++;document.getElementById('progress-fill').style.width=(loaded/totalImages*100)+'%';if(loaded>=totalImages)resolve()};
+    imgWilbert.onload=check;
+    imgWilbert.onerror=()=>{console.warn('Wilbert image failed');check()};
+    imgBeaver.onload=check;
+    imgBeaver.onerror=()=>{console.warn('Beaver image failed');check()};
+    imgWilbert.crossOrigin='anonymous';
+    imgBeaver.crossOrigin='anonymous';
+    imgWilbert.src='https://assets.zyrosite.com/YZ9jg46Bljs5wOZR/wilbert-the-dam-guide-Jv8ovjc6i8PutsiP.png';
+    imgBeaver.src='https://assets.zyrosite.com/YZ9jg46Bljs5wOZR/yall-too-beaver-rhhiVplt1GMykxV8.png';
+  });
+}
+
+// ===================== AUDIO SYSTEM =====================
+function initAudio(){
+  if(audioCtx)return;
+  try{
+    audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    masterGain=audioCtx.createGain();
+    masterGain.gain.value=soundOn?0.4:0;
+    masterGain.connect(audioCtx.destination);
+  }catch(e){console.warn('Audio not available')}
+}
+function playNote(freq,dur,type,vol){
+  if(!audioCtx||!soundOn)return;
+  try{
+    let o=audioCtx.createOscillator();
+    let g=audioCtx.createGain();
+    o.type=type||'sine';
+    o.frequency.value=freq;
+    g.gain.setValueAtTime((vol||0.15),audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);
+    o.connect(g);g.connect(masterGain);
+    o.start();o.stop(audioCtx.currentTime+dur);
+  }catch(e){}
+}
+function playNoise(dur,freq,vol){
+  if(!audioCtx||!soundOn)return;
+  try{
+    let bufSize=audioCtx.sampleRate*dur;
+    let buf=audioCtx.createBuffer(1,bufSize,audioCtx.sampleRate);
+    let data=buf.getChannelData(0);
+    for(let i=0;i<bufSize;i++)data[i]=(Math.random()*2-1);
+    let src=audioCtx.createBufferSource();
+    src.buffer=buf;
+    let filt=audioCtx.createBiquadFilter();
+    filt.type='lowpass';
+    filt.frequency.value=freq||800;
+    let g=audioCtx.createGain();
+    g.gain.setValueAtTime(vol||0.1,audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);
+    src.connect(filt);filt.connect(g);g.connect(masterGain);
+    src.start();
+  }catch(e){}
+}
+function playMelody(notes){
+  if(!audioCtx||!soundOn)return;
+  let t=audioCtx.currentTime;
+  notes.forEach(n=>{
+    let o=audioCtx.createOscillator();
+    let g=audioCtx.createGain();
+    o.type='triangle';
+    o.frequency.value=n.f;
+    g.gain.setValueAtTime(0,t+n.t);
+    g.gain.linearRampToValueAtTime(0.1,t+n.t+0.05);
+    g.gain.exponentialRampToValueAtTime(0.001,t+n.t+n.d);
+    o.connect(g);g.connect(masterGain);
+    o.start(t+n.t);o.stop(t+n.t+n.d);
+  });
+}
+function playValveClick(){playNote(200,0.08,'square',0.2);playNote(150,0.12,'sawtooth',0.1)}
+function playGateGrind(){playNoise(0.5,400,0.15);playNote(80,0.3,'sawtooth',0.08)}
+function playWaterRush(){playNoise(1.5,1200,0.12)}
+function playSplash(){playNoise(0.3,2000,0.2);playNote(600,0.15,'sine',0.08)}
+function playSuccess(){
+  playMelody([
+    {f:523,t:0,d:0.2},{f:659,t:0.15,d:0.2},{f:784,t:0.3,d:0.2},
+    {f:1047,t:0.5,d:0.4}
+  ]);
+}
+function playIntroMusic(){
+  playMelody([
+    {f:262,t:0,d:0.5},{f:330,t:0.4,d:0.5},{f:392,t:0.8,d:0.5},
+    {f:523,t:1.2,d:0.8},{f:392,t:2.0,d:0.5},{f:440,t:2.4,d:0.5},
+    {f:523,t:2.8,d:0.8},{f:392,t:3.6,d:0.4},{f:330,t:4.0,d:0.4},
+    {f:262,t:4.4,d:0.8}
+  ]);
+}
+function playCompletionMusic(){
+  playMelody([
+    {f:392,t:0,d:0.3},{f:440,t:0.2,d:0.3},{f:523,t:0.4,d:0.3},
+    {f:659,t:0.6,d:0.3},{f:784,t:0.8,d:0.5},{f:784,t:1.3,d:0.2},
+    {f:880,t:1.5,d:0.2},{f:1047,t:1.7,d:0.8}
+  ]);
+}
+let ambientInterval=null;
+function startAmbient(){
+  stopAmbient();
+  ambientInterval=setInterval(()=>{
+    if(!soundOn||!audioCtx)return;
+    playNoise(2,300+Math.random()*200,0.03);
+    if(Math.random()>0.6)playNote(2000+Math.random()*2000,0.3,'sine',0.01);
+  },3000);
+}
+function stopAmbient(){if(ambientInterval){clearInterval(ambientInterval);ambientInterval=null}}
+
+document.getElementById('sound-toggle').addEventListener('click',()=>{
+  initAudio();
+  soundOn=!soundOn;
+  document.getElementById('sound-toggle').textContent=soundOn?'\u{1F50A}':'\u{1F507}';
+  if(masterGain)masterGain.gain.value=soundOn?0.4:0;
+});
+
+// ===================== DIALOGUE SYSTEM =====================
+function showDialogue(speaker,text,onDone){
+  dialogueQueue.push({speaker,text,onDone});
+  if(!dialogueActive)advanceDialogue();
+}
+document.getElementById('btn-start').addEventListener('click',()=>{initAudio();goToCharSelect()});
+function advanceDialogue(){
+  if(dialogueQueue.length===0){
+    document.getElementById('dialogue-box').style.display='none';
+    dialogueActive=false;
+    return;
+  }
+  dialogueActive=true;
+  let d=dialogueQueue.shift();
+  dialogueSpeaker=d.speaker;
+  dialogueFullText=d.text;
+  dialogueChar=0;
+  document.getElementById('dialogue-box').style.display='block';
+  document.querySelector('#dialogue-text .speaker').textContent=d.speaker;
+  document.getElementById('d-content').textContent='';
+  if(d.speaker==='Wilbert'){
+    document.getElementById('portrait-img').src=imgWilbert.src;
+  }else{
+    document.getElementById('portrait-img').src=imgBeaver.src;
+  }
+  dialogueActive=true;
+  dialogueOnDone=d.onDone||null;
+}
+let dialogueOnDone=null;
+function tickDialogue(){
+  if(!dialogueActive)return;
+  if(dialogueChar<dialogueFullText.length){
+    dialogueChar+=2;
+    document.getElementById('d-content').textContent=dialogueFullText.substring(0,dialogueChar);
+  }
+}
+function tapDialogue(){
+  if(!dialogueActive)return;
+  if(dialogueChar<dialogueFullText.length){
+    dialogueChar=dialogueFullText.length;
+    document.getElementById('d-content').textContent=dialogueFullText;
+  }else{
+    let cb=dialogueOnDone;
+    dialogueOnDone=null;
+    if(cb)cb();
+    advanceDialogue();
+  }
+}
+document.getElementById('dialogue-box').addEventListener('click',tapDialogue);
+document.getElementById('dialogue-box').addEventListener('touchend',(e)=>{e.preventDefault();tapDialogue()});
+
+// ===================== PARTICLE SYSTEM =====================
+function addParticle(x,y,vx,vy,life,color,size){
+  particles.push({x,y,vx,vy,life,maxLife:life,color:color||'rgba(100,180,255,0.8)',size:size||3});
+}
+function updateParticles(dt){
+  for(let i=particles.length-1;i>=0;i--){
+    let p=particles[i];
+    p.x+=p.vx*dt;
+    p.y+=p.vy*dt;
+    p.vy+=300*dt;
+    p.life-=dt;
+    if(p.life<=0)particles.splice(i,1);
+  }
+}
+function drawParticles(){
+  particles.forEach(p=>{
+    let alpha=Math.max(0,p.life/p.maxLife);
+    ctx.globalAlpha=alpha;
+    ctx.fillStyle=p.color;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
+    ctx.fill();
+  });
+  ctx.globalAlpha=1;
+}
+
+// ===================== RAIN SYSTEM =====================
+function updateRain(dt){
+  if(world.weather!=='light_rain'&&world.weather!=='storm')return;
+  let rate=world.weather==='storm'?5:2;
+  for(let i=0;i<rate;i++){
+    if(Math.random()>0.3)raindrops.push({x:Math.random()*W,y:-10,speed:400+Math.random()*300,len:10+Math.random()*15});
+  }
+  for(let i=raindrops.length-1;i>=0;i--){
+    raindrops[i].y+=raindrops[i].speed*dt;
+    raindrops[i].x-=50*dt;
+    if(raindrops[i].y>H)raindrops.splice(i,1);
+  }
+}
+function drawRain(){
+  if(world.weather!=='light_rain'&&world.weather!=='storm')return;
+  ctx.strokeStyle='rgba(180,200,220,0.3)';
+  ctx.lineWidth=1;
+  raindrops.forEach(r=>{
+    ctx.beginPath();
+    ctx.moveTo(r.x,r.y);
+    ctx.lineTo(r.x-5,r.y+r.len);
+    ctx.stroke();
+  });
+}
+
+// ===================== DRAWING HELPERS =====================
+function drawSky(){
+  let g=ctx.createLinearGradient(0,0,0,H*0.5);
+  g.addColorStop(0,world.sky.top);
+  g.addColorStop(0.5,world.sky.mid);
+  g.addColorStop(1,world.sky.low);
+  ctx.fillStyle=g;
+  ctx.fillRect(0,0,W,H*0.5);
+  if(world.sky.sun){
+    let sx=W*world.sky.sunX,sy=H*world.sky.sunY;
+    let sg=ctx.createRadialGradient(sx,sy,0,sx,sy,H*0.15);
+    sg.addColorStop(0,world.weather==='golden_sunset'?'rgba(255,180,80,0.8)':'rgba(255,255,200,0.8)');
+    sg.addColorStop(0.5,world.weather==='golden_sunset'?'rgba(255,120,40,0.2)':'rgba(255,255,200,0.2)');
+    sg.addColorStop(1,'rgba(255,255,200,0)');
+    ctx.fillStyle=sg;
+    ctx.fillRect(0,0,W,H*0.5);
+  }
+}
+function drawMountains(){
+  world.mountains.forEach((layer,li)=>{
+    let g=ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,layer.colors[0]);
+    g.addColorStop(1,layer.colors[1]);
+    ctx.fillStyle=g;
+    ctx.beginPath();
+    let baseY=H*0.35+li*H*0.05;
+    ctx.moveTo(0,H);
+    layer.points.forEach((p,i)=>{
+      let x=p.x*W;
+      let y=baseY-p.y*H;
+      if(i===0)ctx.lineTo(x,y);
+      else{
+        let px=layer.points[i-1];
+        let cpx=(px.x*W+x)/2;
+        ctx.quadraticCurveTo(cpx,baseY-px.y*H*0.9,x,y);
+      }
+    });
+    ctx.lineTo(W,H);
+    ctx.closePath();
+    ctx.fill();
+  });
+}
+function drawClouds(t){
+  world.clouds.forEach(c=>{
+    let x=((c.x+t*c.speed)%1.3)-0.15;
+    ctx.fillStyle=`rgba(220,230,240,${c.opacity})`;
+    let cx=x*W,cy=c.y*H;
+    ctx.beginPath();
+    ctx.ellipse(cx,cy,c.w*W,c.h*H,0,0,Math.PI*2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(cx-c.w*W*0.3,cy+c.h*H*0.2,c.w*W*0.6,c.h*H*0.8,0,0,Math.PI*2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(cx+c.w*W*0.3,cy+c.h*H*0.3,c.w*W*0.5,c.h*H*0.7,0,0,Math.PI*2);
+    ctx.fill();
+  });
+}
+function drawDam(gateOpenAmt,showSign){
+  let damX=W*0.32,damY=H*0.42,damW=W*0.18,damH=H*0.35;
+  // Dam body
+  let dg=ctx.createLinearGradient(damX,damY,damX+damW,damY);
+  dg.addColorStop(0,'#5a5a5a');dg.addColorStop(0.3,'#8a8a8a');dg.addColorStop(0.7,'#7a7a7a');dg.addColorStop(1,'#4a4a4a');
+  ctx.fillStyle=dg;
+  ctx.beginPath();
+  ctx.moveTo(damX,damY);
+  ctx.lineTo(damX+damW,damY);
+  ctx.lineTo(damX+damW*0.9,damY+damH);
+  ctx.lineTo(damX+damW*0.1,damY+damH);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle='#3a3a3a';ctx.lineWidth=2;ctx.stroke();
+  // Stone texture
+  ctx.strokeStyle='rgba(0,0,0,0.1)';ctx.lineWidth=1;
+  for(let i=0;i<8;i++){
+    let ly=damY+i*(damH/8);
+    ctx.beginPath();ctx.moveTo(damX+damW*0.05,ly);ctx.lineTo(damX+damW*0.95,ly);ctx.stroke();
+  }
+  // Sluice gate
+  let gateY=damY+damH*0.5;
+  let gateH=damH*0.25;
+  let gateW=damW*0.2;
+  let gateCX=damX+damW*0.5;
+  ctx.fillStyle='#333';
+  let gateTopY=gateY-gateOpenAmt*gateH;
+  ctx.fillRect(gateCX-gateW/2,gateTopY,gateW,gateH);
+  ctx.strokeStyle='#555';ctx.lineWidth=2;
+  ctx.strokeRect(gateCX-gateW/2,gateTopY,gateW,gateH);
+  // Gate frame
+  ctx.strokeStyle='#666';ctx.lineWidth=3;
+  ctx.strokeRect(gateCX-gateW/2-3,gateY-gateH*0.1,gateW+6,gateH*1.2);
+  // Water through gate
+  if(gateOpenAmt>0.05){
+    let waterW=gateW*0.6*gateOpenAmt;
+    let wg=ctx.createLinearGradient(0,gateY,0,gateY+gateH);
+    wg.addColorStop(0,world.waterColor.top);wg.addColorStop(1,world.waterColor.base);
+    ctx.fillStyle=wg;
+    ctx.fillRect(gateCX-waterW/2,gateY,waterW,damY+damH-gateY+10);
+    // Spray
+    if(Math.random()>0.5){
+      for(let i=0;i<3;i++){
+        addParticle(gateCX+(Math.random()-0.5)*waterW,damY+damH,
+          (Math.random()-0.5)*60,-50-Math.random()*100,0.5+Math.random()*0.5,
+          world.waterColor.top,2+Math.random()*2);
+      }
+    }
+  }
+  // ADAM sign
+  if(showSign!==false){
+    let signW=damW*0.65,signH=damH*0.12;
+    let signX=damX+damW*0.5-signW/2,signY=damY+damH*0.15;
+    ctx.fillStyle='#f5f0e0';
+    ctx.fillRect(signX,signY,signW,signH);
+    ctx.strokeStyle='#8B6914';ctx.lineWidth=2;
+    ctx.strokeRect(signX,signY,signW,signH);
+    ctx.fillStyle='#2a1a0a';
+    ctx.font=`bold ${Math.max(10,signH*0.4)}px 'Georgia',serif`;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('ADAM',signX+signW/2,signY+signH*0.35);
+    ctx.font=`${Math.max(7,signH*0.25)}px 'Georgia',serif`;
+    ctx.fillText('HYDRAULIC DAM',signX+signW/2,signY+signH*0.7);
+    ctx.textAlign='left';
+  }
+}
+function drawReservoir(t,level){
+  let resY=H*0.42;
+  let resH=H*0.15*level;
+  let damX=W*0.32;
+  let wg=ctx.createLinearGradient(0,resY,0,resY+resH);
+  wg.addColorStop(0,world.waterColor.top+'cc');
+  wg.addColorStop(1,world.waterColor.base+'ee');
+  ctx.fillStyle=wg;
+  ctx.beginPath();
+  ctx.moveTo(0,resY);
+  for(let x=0;x<=damX;x+=4){
+    let wave=Math.sin(x*0.02+t*2)*3+Math.sin(x*0.01+t*1.5)*2;
+    ctx.lineTo(x,resY+wave);
+  }
+  ctx.lineTo(damX,resY+resH);
+  ctx.lineTo(0,resY+resH);
+  ctx.closePath();
+  ctx.fill();
+}
+function drawDownstreamWater(t,flowAmt){
+  if(flowAmt<=0)return;
+  let damX=W*0.32+W*0.18*0.9;
+  let baseY=H*0.77;
+  let riverW=W*0.04*flowAmt;
+  let extent=flowAmt*W*0.5;
+  let wg=ctx.createLinearGradient(damX,baseY-riverW,damX,baseY+riverW);
+  wg.addColorStop(0,world.waterColor.top+'88');
+  wg.addColorStop(0.5,world.waterColor.mid+'cc');
+  wg.addColorStop(1,world.waterColor.base+'88');
+  ctx.fillStyle=wg;
+  ctx.beginPath();
+  ctx.moveTo(damX,baseY-riverW*0.5);
+  for(let x=damX;x<=damX+extent;x+=4){
+    let wave=Math.sin(x*0.03+t*3)*2*flowAmt;
+    ctx.lineTo(x,baseY-riverW*0.5+wave);
+  }
+  for(let x=damX+extent;x>=damX;x-=4){
+    let wave=Math.sin(x*0.03+t*3+1)*2*flowAmt;
+    ctx.lineTo(x,baseY+riverW*0.5+wave);
+  }
+  ctx.closePath();
+  ctx.fill();
+  // Irrigation channels
+  if(flowAmt>0.3){
+    ctx.strokeStyle=world.waterColor.mid+'88';
+    ctx.lineWidth=2+flowAmt*3;
+    for(let i=0;i<3;i++){
+      let sx=damX+extent*(0.3+i*0.25);
+      ctx.beginPath();
+      ctx.moveTo(sx,baseY);
+      ctx.quadraticCurveTo(sx+20,baseY+30*flowAmt,sx+40,baseY+50*flowAmt);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(sx,baseY);
+      ctx.quadraticCurveTo(sx+20,baseY-30*flowAmt,sx+40,baseY-50*flowAmt);
+      ctx.stroke();
+    }
+  }
+}
+function drawGround(){
+  let groundY=H*0.65;
+  let gColors;
+  switch(world.land){
+    case'dry_golden':gColors=['#c4a44a','#a08030','#8a6a20'];break;
+    case'rocky':gColors=['#7a7a7a','#6a6060','#5a5050'];break;
+    case'green_grass':gColors=['#4a8a3a','#3a7a2a','#2a6a1a'];break;
+    case'fertile':gColors=['#5a4a2a','#4a3a1a','#6a5a3a'];break;
+    case'mixed':gColors=['#7a8a3a','#6a7a2a','#8a7a4a'];break;
+    default:gColors=['#8a7a4a','#7a6a3a','#6a5a2a'];
+  }
+  let gg=ctx.createLinearGradient(0,groundY,0,H);
+  gg.addColorStop(0,gColors[0]);gg.addColorStop(0.5,gColors[1]);gg.addColorStop(1,gColors[2]);
+  ctx.fillStyle=gg;
+  ctx.fillRect(0,groundY,W,H-groundY);
+  // Dry cracks if no water
+  if(world.land==='dry_golden'&&transformStage<1){
+    ctx.strokeStyle='rgba(80,60,20,0.3)';ctx.lineWidth=1;
+    let cs=mulberry32(worldSeed+99);
+    for(let i=0;i<15;i++){
+      let cx=W*0.5+cs()*W*0.4;
+      let cy=groundY+cs()*(H-groundY)*0.6;
+      ctx.beginPath();ctx.moveTo(cx,cy);
+      ctx.lineTo(cx+cs()*30-15,cy+cs()*20);
+      ctx.lineTo(cx+cs()*20-10,cy+cs()*30+10);
+      ctx.stroke();
+    }
+  }
+}
+function drawVegetation(growthLevel){
+  let groundY=H*0.65;
+  let baseScale=growthLevel;
+  world.trees.forEach(t=>{
+    if(baseScale<0.1)return;
+    let tx=W*0.5+t.rx*W*0.5;
+    let ty=groundY+t.ry*(H-groundY)*0.5;
+    let s=t.size*H*baseScale;
+    ctx.fillStyle=t.color;
+    if(t.type===0){
+      ctx.beginPath();ctx.moveTo(tx,ty-s*3);ctx.lineTo(tx-s,ty);ctx.lineTo(tx+s,ty);ctx.closePath();ctx.fill();
+      ctx.fillStyle='#5a3a1a';ctx.fillRect(tx-s*0.15,ty,s*0.3,s);
+    }else if(t.type===1){
+      ctx.beginPath();ctx.arc(tx,ty-s,s,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(tx-s*0.6,ty-s*0.5,s*0.7,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#5a3a1a';ctx.fillRect(tx-s*0.1,ty-s*0.3,s*0.2,s*1.3);
+    }else{
+      ctx.beginPath();ctx.ellipse(tx,ty-s*0.5,s*1.2,s,0,0,Math.PI*2);ctx.fill();
+    }
+  });
+  // Crops
+  if(growthLevel>0.3){
+    let cropColors=['#7aaa2a','#5a9a1a','#8aba3a','#6a8a2a'];
+    let cc=cropColors[world.cropType];
+    let startX=W*0.6;
+    for(let r=0;r<4*growthLevel;r++){
+      for(let c=0;c<6;c++){
+        let cx=startX+c*25;
+        let cy=groundY+40+r*18;
+        if(cy<H){
+          ctx.fillStyle=cc;
+          ctx.fillRect(cx,cy-8*growthLevel,3,8*growthLevel);
+          if(growthLevel>0.6){
+            ctx.fillStyle='#aa8a2a';
+            ctx.beginPath();ctx.arc(cx+1,cy-8*growthLevel,2,0,Math.PI*2);ctx.fill();
+          }
+        }
+      }
+    }
+  }
+}
+function drawBuildings(buildLevel){
+  if(buildLevel<=0)return;
+  let groundY=H*0.65;
+  let n=Math.floor(world.buildings.length*buildLevel);
+  for(let i=0;i<n;i++){
+    let b=world.buildings[i];
+    let bx=W*(world.settlementX+b.rx);
+    let by=groundY-b.h*H*buildLevel+b.ry*H;
+    let bw=b.w*W;
+    let bh=b.h*H*buildLevel;
+    if(bx>W||by>H)continue;
+    ctx.fillStyle=b.color;
+    ctx.fillRect(bx,by,bw,bh);
+    // Roof
+    ctx.fillStyle=b.roofColor;
+    ctx.beginPath();ctx.moveTo(bx-2,by);ctx.lineTo(bx+bw/2,by-bh*0.2);ctx.lineTo(bx+bw+2,by);ctx.closePath();ctx.fill();
+    // Windows
+    ctx.fillStyle='rgba(255,255,200,0.6)';
+    for(let f=0;f<b.floors;f++){
+      for(let w=0;w<b.windows;w++){
+        let wx=bx+bw*0.15+w*(bw*0.7/(b.windows));
+        let wy=by+bh*0.15+f*(bh*0.4);
+        ctx.fillRect(wx,wy,bw*0.15,bh*0.15);
+      }
+    }
+    // Chimney
+    if(b.hasChimney&&buildLevel>0.5){
+      ctx.fillStyle='#555';
+      ctx.fillRect(bx+bw*0.6,by-bh*0.3,bw*0.12,bh*0.3);
+    }
+  }
+  // Roads
+  if(buildLevel>0.3){
+    ctx.strokeStyle='rgba(100,90,70,0.5)';
+    ctx.lineWidth=4+buildLevel*4;
+    ctx.beginPath();
+    let rx=W*world.settlementX;
+    ctx.moveTo(rx,groundY+10);
+    ctx.lineTo(rx+W*0.3*buildLevel,groundY+10+world.roadAngle*H*0.3);
+    ctx.stroke();
+  }
+  // People
+  if(buildLevel>0.6){
+    let ps=mulberry32(world.buildingSeed+77);
+    let nPeople=Math.floor(buildLevel*8);
+    for(let i=0;i<nPeople;i++){
+      let px=W*world.settlementX+ps()*W*0.3;
+      let py=groundY+ps()*40;
+      ctx.fillStyle=`hsl(${ps()*360},50%,50%)`;
+      ctx.beginPath();ctx.arc(px,py-6,3,0,Math.PI*2);ctx.fill();
+      ctx.fillRect(px-1.5,py-3,3,8);
+    }
+  }
+}
+function drawCharacter(x,y,scale,char,toolAngle){
+  let s=scale||1;
+  let cw=80*s,ch=80*s;
+  // Draw beaver
+  if(imgBeaver.complete&&imgBeaver.naturalWidth>0){
+    ctx.drawImage(imgBeaver,x-cw/2,y-ch,cw,ch);
+  }else{
+    ctx.fillStyle='#8B6914';
+    ctx.beginPath();ctx.ellipse(x,y-ch*0.5,cw*0.4,ch*0.5,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#fff';
+    ctx.beginPath();ctx.arc(x-cw*0.1,y-ch*0.6,4*s,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(x+cw*0.1,y-ch*0.6,4*s,0,Math.PI*2);ctx.fill();
+  }
+  // Accessory
+  ctx.fillStyle=world.accessoryColor;
+  if(char==='cain'){
+    ctx.fillRect(x-cw*0.3,y-ch*0.95,cw*0.6,ch*0.08);
+    // Wrench
+    ctx.save();ctx.translate(x+cw*0.4,y-ch*0.3);
+    if(toolAngle!=null)ctx.rotate(toolAngle);
+    ctx.fillStyle='#aaa';ctx.fillRect(-3*s,-20*s,6*s,25*s);
+    ctx.fillStyle='#888';
+    ctx.beginPath();ctx.arc(0,-20*s,8*s,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#aaa';ctx.fillRect(-6*s,-24*s,12*s,4*s);
+    ctx.restore();
+  }else{
+    ctx.beginPath();ctx.arc(x,y-ch*0.9,cw*0.15,0,Math.PI*2);ctx.fill();
+    // Crank
+    ctx.save();ctx.translate(x+cw*0.4,y-ch*0.3);
+    if(toolAngle!=null)ctx.rotate(toolAngle);
+    ctx.fillStyle='#777';ctx.fillRect(-2*s,-18*s,4*s,22*s);
+    ctx.fillStyle='#999';ctx.fillRect(-8*s,-22*s,16*s,5*s);
+    ctx.beginPath();ctx.arc(-8*s,-19*s,4*s,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+  }
+}
+function drawWilbert(x,y,scale){
+  let s=scale||1;
+  let cw=80*s,ch=80*s;
+  if(imgWilbert.complete&&imgWilbert.naturalWidth>0){
+    ctx.drawImage(imgWilbert,x-cw/2,y-ch,cw,ch);
+  }else{
+    ctx.fillStyle='#4a7a4a';
+    ctx.beginPath();ctx.ellipse(x,y-ch*0.5,cw*0.4,ch*0.5,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#f4a832';
+    ctx.font=`bold ${12*s}px sans-serif`;ctx.textAlign='center';
+    ctx.fillText('W',x,y-ch*0.45);
+  }
+}
+
+// ===================== VALVE MECHANIC =====================
+let valveCenterX=0,valveCenterY=0,valveRadius=0;
+function drawValveControl(t){
+  let vx=W*0.5,vy=H*0.45;
+  let vr=Math.min(W,H)*0.12;
+  valveCenterX=vx;valveCenterY=vy;valveRadius=vr;
+  // Control station background
+  ctx.fillStyle='rgba(40,50,60,0.9)';
+  ctx.fillRect(vx-vr*1.5,vy-vr*1.5,vr*3,vr*3);
+  ctx.strokeStyle='#666';ctx.lineWidth=3;
+  ctx.strokeRect(vx-vr*1.5,vy-vr*1.5,vr*3,vr*3);
+  // Valve wheel
+  ctx.save();
+  ctx.translate(vx,vy);
+  ctx.rotate(valveAngle);
+  // Outer ring
+  ctx.strokeStyle='#c0c0c0';ctx.lineWidth=Math.max(6,vr*0.08);
+  ctx.beginPath();ctx.arc(0,0,vr,0,Math.PI*2);ctx.stroke();
+  // Spokes
+  for(let i=0;i<4;i++){
+    let a=i*Math.PI/2;
+    ctx.strokeStyle='#a0a0a0';ctx.lineWidth=Math.max(4,vr*0.06);
+    ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(Math.cos(a)*vr,Math.sin(a)*vr);ctx.stroke();
+  }
+  // Center hub
+  ctx.fillStyle='#888';
+  ctx.beginPath();ctx.arc(0,0,vr*0.15,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#666';ctx.lineWidth=2;ctx.stroke();
+  // Handle knobs
+  for(let i=0;i<4;i++){
+    let a=i*Math.PI/2;
+    ctx.fillStyle='#b0b0b0';
+    ctx.beginPath();ctx.arc(Math.cos(a)*vr,Math.sin(a)*vr,vr*0.1,0,Math.PI*2);ctx.fill();
+  }
+  ctx.restore();
+  // Tool attachment point indicator
+  if(valveRotations<6){
+    let pulse=0.5+Math.sin(t*4)*0.5;
+    ctx.strokeStyle=`rgba(244,168,50,${0.3+pulse*0.4})`;
+    ctx.lineWidth=3;
+    ctx.setLineDash([5,5]);
+    ctx.beginPath();ctx.arc(vx,vy,vr*1.2,0,Math.PI*2);ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  // Pressure gauge
+  let gaugeX=vx+vr*1.8,gaugeY=vy-vr*0.5;
+  let gaugeR=vr*0.35;
+  ctx.fillStyle='#222';
+  ctx.beginPath();ctx.arc(gaugeX,gaugeY,gaugeR,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#555';ctx.lineWidth=2;ctx.stroke();
+  let pressure=valveRotations/6;
+  let startA=Math.PI*0.8;
+  let endA=startA+pressure*Math.PI*1.4;
+  ctx.strokeStyle=pressure>0.7?'#f44':pressure>0.4?'#fa0':'#4f4';
+  ctx.lineWidth=3;
+  ctx.beginPath();ctx.arc(gaugeX,gaugeY,gaugeR*0.7,startA,endA);ctx.stroke();
+  ctx.fillStyle='#aaa';
+  ctx.font=`${Math.max(8,gaugeR*0.4)}px sans-serif`;
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('PSI',gaugeX,gaugeY+gaugeR*0.4);
+}
+
+// ===================== STATE: CINEMATIC =====================
+let startBtnEl=null;
+function drawCinematic(t){
+  let phase=cinematicPhase;
+  let pt=cinematicTimer;
+  drawSky();
+  drawClouds(t);
+  drawMountains();
+  drawGround();
+  // Camera zoom effect
+  let zoom=1;
+  let panX=0,panY=0;
+  if(phase===0){
+    zoom=1+pt*0.0005;
+    panY=-pt*0.02;
+  }else if(phase===1){
+    zoom=1.1+pt*0.0003;
+    panX=-W*0.05;
+    panY=-H*0.05;
+  }
+  ctx.save();
+  ctx.translate(W/2,H/2);
+  ctx.scale(zoom,zoom);
+  ctx.translate(-W/2+panX,-H/2+panY);
+  drawReservoir(t,0.9);
+  drawDam(0,true);
+  ctx.restore();
+  drawRain(t);
+  // Phase overlays
+  if(phase>=2){
+    drawDownstreamWater(t,0);
+    // Dry land emphasis
+    ctx.fillStyle='rgba(200,160,80,0.1)';
+    ctx.fillRect(W*0.55,H*0.6,W*0.4,H*0.3);
+  }
+  if(phase>=3){
+    drawWilbert(W*0.2,H*0.85,Math.min(W,H)/600);
+  }
+  drawParticles();
+}
+function updateCinematic(dt){
+  cinematicTimer+=dt*1000;
+  if(cinematicPhase===0&&cinematicTimer>3000){
+    cinematicPhase=1;cinematicTimer=0;
+  }else if(cinematicPhase===1&&cinematicTimer>3000){
+    cinematicPhase=2;cinematicTimer=0;
+  }else if(cinematicPhase===2&&cinematicTimer>2000){
+    cinematicPhase=3;cinematicTimer=0;
+    showDialogue('Wilbert',world.introDialogue,()=>{showStartBtn=true;document.getElementById('btn-start').style.display='block'});
+  }
+}
+
+// ===================== STATE: DISCOVERY =====================
+const DISCOVERY_ITEMS=[
+  {name:'Reservoir',desc:"This is the reservoir! It's a big lake behind the dam that stores water. Think of it like a giant bathtub holding water for everyone.",x:.15,y:.45},
+  {name:'Sluice Gates',desc:"These are sluice gates! They're like big doors that control how much water flows through the dam. We can open and close them.",x:.41,y:.58},
+  {name:'Control Valves',desc:"Control valves are like faucets. By turning them, we decide how fast or slow the water comes out. That's hydraulic control!",x:.42,y:.52},
+  {name:'Downstream Channel',desc:"This is the downstream channel. After water leaves the dam, it flows through here on its way to farms and towns.",x:.6,y:.75},
+  {name:'Dry Land',desc:"Look at this dry land! Without water, nothing can grow here. The soil is cracked and the plants are struggling.",x:.75,y:.7},
+  {name:'Irrigation Channels',desc:"Irrigation channels are like small rivers we build on purpose. They carry water from the main channel to the fields where crops grow.",x:.8,y:.8}
+];
+let discoveryHighlight=-1;
+function drawDiscovery(t){
+  drawSky();drawClouds(t);drawMountains();drawGround();
+  drawReservoir(t,0.9);drawDam(0,true);drawRain(t);
+  drawWilbert(W*0.08,H*0.85,Math.min(W,H)/700);
+  // Highlight items
+  DISCOVERY_ITEMS.forEach((item,i)=>{
+    let ix=item.x*W,iy=item.y*H;
+    let pulse=0.5+Math.sin(t*3+i)*0.5;
+    if(i<=discoveryIndex){
+      ctx.strokeStyle=i===discoveryHighlight?`rgba(244,168,50,${0.5+pulse*0.5})`:'rgba(100,180,255,0.4)';
+      ctx.lineWidth=i===discoveryHighlight?3:1;
+      ctx.setLineDash([4,4]);
+      ctx.beginPath();ctx.arc(ix,iy,20+pulse*5,0,Math.PI*2);ctx.stroke();
+      ctx.setLineDash([]);
+      if(i<=discoveryIndex){
+        ctx.fillStyle='rgba(100,180,255,0.9)';
+        ctx.beginPath();ctx.arc(ix,iy,6,0,Math.PI*2);ctx.fill();
+      }
+    }
+  });
+  drawParticles();
+}
+
+// ===================== STATE: VALVE =====================
+function drawValveScene(t){
+  drawSky();drawClouds(t);drawMountains();drawGround();
+  drawReservoir(t,0.9-gateOpen*0.3);
+  drawDam(gateOpen,true);
+  drawDownstreamWater(t,gateOpen*0.5);
+  drawVegetation(0);
+  drawValveControl(t);
+  // Player character near valve
+  let charX=W*0.5-valveRadius*2;
+  let charY=H*0.55;
+  drawCharacter(charX,charY,Math.min(W,H)/800,selectedChar,valveAngle);
+  drawRain(t);
+  drawParticles();
+}
+
+// ===================== STATE: TRANSFORM =====================
+function drawTransformScene(t){
+  drawSky();drawClouds(t);drawMountains();drawGround();
+  let resLevel=Math.max(0.3,0.9-transformProgress*0.3);
+  drawReservoir(t,resLevel);
+  drawDam(Math.min(1,0.3+transformProgress*0.3),true);
+  let flow=Math.min(1,transformProgress*1.2);
+  drawDownstreamWater(t,flow);
+  let veg=transformStage>=2?Math.min(1,(transformProgress-0.3)/0.3):0;
+  drawVegetation(veg);
+  let build=transformStage>=3?Math.min(1,(transformProgress-0.55)/0.3):0;
+  drawBuildings(build);
+  // Character watching
+  let charX=W*0.48;
+  let charY=H*0.63;
+  drawCharacter(charX,charY,Math.min(W,H)/800,selectedChar,null);
+  drawWilbert(W*0.08,H*0.85,Math.min(W,H)/700);
+  drawRain(t);
+  drawParticles();
+}
+function updateTransform(dt){
+  transformProgress+=dt*0.08;
+  if(transformProgress<0.2)transformStage=0;
+  else if(transformProgress<0.35){
+    if(transformStage<1){transformStage=1;playWaterRush();showDialogue('Wilbert',"Water is arriving! See how the river channel is filling up? The water is making its way downstream.")}
+  }
+  else if(transformProgress<0.55){
+    if(transformStage<2){transformStage=2;showDialogue('Wilbert',"Look! Irrigation channels are spreading water to the fields. Crops are starting to grow! This is the power of water management.")}
+  }
+  else if(transformProgress<0.75){
+    if(transformStage<3){transformStage=3;showDialogue('Wilbert',"People are coming to collect water. Farms are becoming productive. A community is forming!")}
+  }
+  else if(transformProgress<1.0){
+    if(transformStage<4){
+      transformStage=4;
+      showDialogue('Wilbert',"Amazing! Buildings, roads, and homes are appearing. From dry land to a thriving civilization, all because of controlled water release!",()=>{
+        startQuiz();
+      });
+    }
+  }
+}
+
+// ===================== QUIZ =====================
+const QUIZ_QUESTIONS=[
+  {
+    q:"Should we release all the water at once, or should we control how much water flows downstream?",
+    answers:["Release everything at once so the land gets water faster!","Control the release so water can be distributed responsibly.","Keep all the water in the reservoir forever.","Let nature decide when to release water."],
+    correct:1,
+    feedback:"That's right! Controlled release prevents flooding and erosion, and makes sure water reaches everyone who needs it."
+  },
+  {
+    q:"What is the purpose of a sluice gate on a dam?",
+    answers:["To make the dam look nice.","To control the flow of water released from the reservoir.","To stop fish from swimming upstream.","To generate electricity only."],
+    correct:1,
+    feedback:"Exactly! Sluice gates control how much water passes through the dam. They're one of the most important parts of water management."
+  },
+  {
+    q:"What happens to the downstream land when water is managed properly through irrigation?",
+    answers:["Nothing changes.","The land floods and becomes a lake.","Crops can grow, communities develop, and civilization thrives.","All the water evaporates immediately."],
+    correct:2,
+    feedback:"You got it! When water is distributed through irrigation channels, dry land transforms into farmland, supporting food, families, and communities."
+  }
+];
+function startQuiz(){
+  quizIndex=0;quizScore=0;
+  state=STATES.QUIZ;
+  showQuizQuestion();
+}
+function showQuizQuestion(){
+  if(quizIndex>=QUIZ_QUESTIONS.length){
+    finishQuiz();return;
+  }
+  let q=QUIZ_QUESTIONS[quizIndex];
+  document.getElementById('quiz-panel').style.display='block';
+  document.getElementById('quiz-header').textContent=`QUESTION ${quizIndex+1} OF ${QUIZ_QUESTIONS.length}`;
+  document.getElementById('quiz-question').textContent=q.q;
+  document.getElementById('quiz-feedback').textContent='';
+  let cont=document.getElementById('quiz-answers');
+  cont.innerHTML='';
+  q.answers.forEach((a,i)=>{
+    let btn=document.createElement('button');
+    btn.className='quiz-btn';btn.textContent=a;
+    btn.addEventListener('click',()=>answerQuiz(i));
+    cont.appendChild(btn);
+  });
+}
+function answerQuiz(idx){
+  let q=QUIZ_QUESTIONS[quizIndex];
+  let btns=document.querySelectorAll('.quiz-btn');
+  btns.forEach((b,i)=>{
+    b.style.pointerEvents='none';
+    if(i===q.correct)b.classList.add('correct');
+    if(i===idx&&i!==q.correct)b.classList.add('wrong');
+  });
+  if(idx===q.correct){quizScore++;playNote(523,0.2,'triangle',0.15)}
+  else{playNote(200,0.3,'sawtooth',0.1)}
+  document.getElementById('quiz-feedback').textContent=q.feedback;
+  setTimeout(()=>{
+    quizIndex++;
+    if(quizIndex<QUIZ_QUESTIONS.length){showQuizQuestion()}
+    else{finishQuiz()}
+  },3000);
+}
+function finishQuiz(){
+  document.getElementById('quiz-panel').style.display='none';
+  state=STATES.COMPLETE;
+  stateTime=0;
+  playCompletionMusic();
+  showCompletion();
+}
+function showCompletion(){
+  document.getElementById('completion-screen').style.display='flex';
+  hudVisible=false;
+  document.getElementById('hud').style.display='none';
+  // Celebration particles
+  for(let i=0;i<100;i++){
+    let colors=['#f4a832','#64d2ff','#4f4','#f44','#fff','#fa0'];
+    addParticle(W*0.5+(Math.random()-0.5)*W*0.6,H*0.4,
+      (Math.random()-0.5)*200,-100-Math.random()*300,
+      2+Math.random()*2,colors[Math.floor(Math.random()*colors.length)],2+Math.random()*4);
+  }
+}
+
+// ===================== START / REPLAY =====================
+function startGame(){
+  generateWorld();
+  state=STATES.CINEMATIC;
+  stateTime=0;
+  cinematicPhase=0;cinematicTimer=0;
+  selectedChar=null;valveRotations=0;gateOpen=0;
+  transformStage=0;transformProgress=0;
+  quizIndex=0;quizScore=0;
+  particles=[];raindrops=[];
+  dialogueQueue=[];dialogueActive=false;
+  showStartBtn=false;
+  discoveryIndex=0;discoveryHighlight=-1;
+  valveAngle=0;valveAccum=0;
+  waterLevel=0;
+  document.getElementById('completion-screen').style.display='none';
+  document.getElementById('btn-start').style.display='none';
+  document.getElementById('char-select').style.display='none';
+  document.getElementById('quiz-panel').style.display='none';
+  document.getElementById('dialogue-box').style.display='none';
+  document.getElementById('rotation-counter').style.display='none';
+  document.getElementById('instruction-text').style.display='none';
+  hudVisible=false;
+  document.getElementById('hud').style.display='none';
+  startBtnEl=null;
+  inputEnabled=true;
+  startAmbient();
+  playIntroMusic();
+}
+
+// ===================== INPUT =====================
+let mouseX=0,mouseY=0,mouseDown=false;
+function getPos(e){
+  let ev=e.touches?e.touches[0]:e;
+  return{x:ev.clientX,y:ev.clientY};
+}
+canvas.addEventListener('mousedown',(e)=>{mouseDown=true;let p=getPos(e);mouseX=p.x;mouseY=p.y;handlePress(p.x,p.y)});
+canvas.addEventListener('mousemove',(e)=>{let p=getPos(e);mouseX=p.x;mouseY=p.y;if(mouseDown)handleDrag(p.x,p.y)});
+canvas.addEventListener('mouseup',()=>{mouseDown=false;handleRelease()});
+canvas.addEventListener('touchstart',(e)=>{e.preventDefault();mouseDown=true;let p=getPos(e);mouseX=p.x;mouseY=p.y;handlePress(p.x,p.y)},{passive:false});
+canvas.addEventListener('touchmove',(e)=>{e.preventDefault();let p=getPos(e);mouseX=p.x;mouseY=p.y;if(mouseDown)handleDrag(p.x,p.y)},{passive:false});
+canvas.addEventListener('touchend',(e)=>{e.preventDefault();mouseDown=false;handleRelease()},{passive:false});
+
+function handlePress(x,y){
+  initAudio();
+  if(!inputEnabled)return;
+  if(state===STATES.VALVE){
+    let dx=x-valveCenterX,dy=y-valveCenterY;
+    let dist=Math.sqrt(dx*dx+dy*dy);
+    if(dist<valveRadius*1.8){
+      valveDragging=true;
+      valveLastAngle=Math.atan2(dy,dx);
+    }
+  }
+  if(state===STATES.DISCOVERY&&!dialogueActive){
+    let hitRadius=Math.max(40,W*0.04);
+    let best=-1,bestDist=Infinity;
+    DISCOVERY_ITEMS.forEach((item,i)=>{
+      if(i>discoveryIndex)return;
+      let ix=item.x*W,iy=item.y*H;
+      let dx=x-ix,dy=y-iy;
+      let dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist<hitRadius&&dist<bestDist){best=i;bestDist=dist}
+    });
+    if(best>=0){
+      let item=DISCOVERY_ITEMS[best];
+      discoveryHighlight=best;
+      playNote(440,0.1,'triangle',0.1);
+      showDialogue('Wilbert',`${item.name}: ${item.desc}`,()=>{
+        discoveryHighlight=-1;
+        if(best===discoveryIndex){
+          discoveryIndex++;
+          if(discoveryIndex>=DISCOVERY_ITEMS.length){
+            showDialogue('Wilbert',"Great job exploring! Now it's time to operate the valve and release water downstream. Let's go to the control station!",()=>{
+              goToValve();
+            });
+          }
+        }
+      });
+    }
+  }
+}
+function handleDrag(x,y){
+  if(state===STATES.VALVE&&valveDragging){
+    let dx=x-valveCenterX,dy=y-valveCenterY;
+    let angle=Math.atan2(dy,dx);
+    let delta=angle-valveLastAngle;
+    if(delta>Math.PI)delta-=2*Math.PI;
+    if(delta<-Math.PI)delta+=2*Math.PI;
+    // Only clockwise (positive)
+    if(delta>0){
+      valveAngle+=delta;
+      valveAccum+=delta;
+      if(valveAccum>=Math.PI*1.8){
+        valveAccum-=Math.PI*1.8;
+        if(valveRotations<6){
+          valveRotations++;
+          gateOpen=valveRotations/6;
+          playValveClick();
+          playGateGrind();
+          if(valveRotations<=6){
+            playSplash();
+            for(let i=0;i<15;i++){
+              addParticle(W*0.42+Math.random()*W*0.05,H*0.65,
+                (Math.random()-0.5)*80,-30-Math.random()*80,
+                0.5+Math.random()*0.8,world.waterColor.top,2+Math.random()*3);
+            }
+          }
+          document.getElementById('rotation-counter').textContent=`${valveRotations} / 6`;
+          document.getElementById('rotation-counter').style.display='block';
+          setTimeout(()=>{if(valveRotations>=6)document.getElementById('rotation-counter').style.display='none'},1500);
+          if(valveRotations>=6){
+            setTimeout(()=>{
+              showDialogue('Wilbert',"Excellent work! You've opened the sluice gates! Watch as the water flows downstream and transforms the land!",()=>{
+                goToTransform();
+              });
+            },1000);
+          }
+        }
+      }
+    }
+    valveLastAngle=angle;
+  }
+}
+function handleRelease(){
+  valveDragging=false;
+}
+
+// ===================== STATE TRANSITIONS =====================
+function goToCharSelect(){
+  state=STATES.CHAR_SELECT;stateTime=0;
+  document.getElementById('btn-start').style.display='none';
+  document.getElementById('char-select').style.display='block';
+  document.getElementById('cain-img').src=imgBeaver.src;
+  document.getElementById('abel-img').src=imgBeaver.src;
+  document.getElementById('dialogue-box').style.display='none';
+  startBtnEl=null;showStartBtn=false;
+}
+document.getElementById('pick-cain').addEventListener('click',()=>{selectCharacter('cain')});
+document.getElementById('pick-abel').addEventListener('click',()=>{selectCharacter('abel')});
+function selectCharacter(c){
+  initAudio();
+  selectedChar=c;
+  playNote(523,0.15,'triangle',0.15);
+  document.getElementById('char-select').style.display='none';
+  hudVisible=true;
+  document.getElementById('hud').style.display='block';
+  document.getElementById('hud-progress').textContent=`${c==='cain'?'Cain':'Abel'} | Dam Discovery`;
+  state=STATES.DISCOVERY;stateTime=0;
+  discoveryIndex=0;
+  showDialogue('Wilbert',`Great choice, ${c==='cain'?'Cain':'Abel'}! Let's explore the dam. Tap on the glowing points to learn about each part of the hydraulic system.`);
+  document.getElementById('instruction-text').textContent='Tap the glowing points to explore the dam';
+  document.getElementById('instruction-text').style.display='block';
+  document.getElementById('bible-toggle').style.display='block';
+}
+function goToValve(){
+  state=STATES.VALVE;stateTime=0;
+  valveRotations=0;gateOpen=0;valveAngle=0;valveAccum=0;
+  document.getElementById('hud-progress').textContent=`${selectedChar==='cain'?'Cain':'Abel'} | Valve Operation`;
+  document.getElementById('instruction-text').textContent=selectedChar==='cain'?'Drag clockwise on the valve wheel to turn your wrench':'Drag clockwise on the valve wheel to crank it open';
+  document.getElementById('instruction-text').style.display='block';
+  document.getElementById('rotation-counter').textContent='0 / 6';
+  document.getElementById('rotation-counter').style.display='block';
+}
+function goToTransform(){
+  state=STATES.TRANSFORM;stateTime=0;
+  transformStage=0;transformProgress=0;
+  document.getElementById('hud-progress').textContent=`${selectedChar==='cain'?'Cain':'Abel'} | Transformation`;
+  document.getElementById('instruction-text').style.display='none';
+  document.getElementById('rotation-counter').style.display='none';
+  playWaterRush();
+  showDialogue('Wilbert',"Watch the land transform! The water is flowing downstream...");
+}
+// Bible toggle
+document.getElementById('bible-toggle').addEventListener('click',()=>{
+  let p=document.getElementById('bible-panel');
+  p.style.display=p.style.display==='block'?'none':'block';
+});
+document.getElementById('close-bible').addEventListener('click',()=>{
+  document.getElementById('bible-panel').style.display='none';
+});
+// Replay
+document.getElementById('btn-replay').addEventListener('click',()=>{
+  initAudio();
+  stopAmbient();
+  startGame();
+});
+
+// ===================== MAIN GAME LOOP =====================
+function gameLoop(timestamp){
+  if(!lastTime)lastTime=timestamp;
+  deltaTime=Math.min((timestamp-lastTime)/1000,0.05);
+  lastTime=timestamp;
+  stateTime+=deltaTime;
+  resize();
+  ctx.clearRect(0,0,W,H);
+  updateParticles(deltaTime);
+  updateRain(deltaTime);
+  tickDialogue();
+  switch(state){
+    case STATES.LOADING:
+      break;
+    case STATES.CINEMATIC:
+      updateCinematic(deltaTime);
+      drawCinematic(stateTime);
+      // START button is HTML overlay, shown by showStartBtn flag
+      break;
+    case STATES.CHAR_SELECT:
+      drawCinematic(stateTime);
+      break;
+    case STATES.DISCOVERY:
+      drawDiscovery(stateTime);
+      break;
+    case STATES.VALVE:
+      drawValveScene(stateTime);
+      break;
+    case STATES.TRANSFORM:
+      updateTransform(deltaTime);
+      drawTransformScene(stateTime);
+      break;
+    case STATES.QUIZ:
+      drawTransformScene(stateTime);
+      break;
+    case STATES.COMPLETE:
+      drawTransformScene(stateTime);
+      break;
+  }
+  drawParticles();
+  requestAnimationFrame(gameLoop);
+}
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+}
+
+// ===================== INIT =====================
+async function init(){
+  document.getElementById('load-status').textContent='Loading character assets...';
+  await loadAssets();
+  document.getElementById('progress-fill').style.width='100%';
+  document.getElementById('load-status').textContent='Generating world...';
+  await new Promise(r=>setTimeout(r,500));
+  document.getElementById('loading-screen').style.display='none';
+  startGame();
+  requestAnimationFrame(gameLoop);
+}
+init();
+</script>
+</body>
+</html>
